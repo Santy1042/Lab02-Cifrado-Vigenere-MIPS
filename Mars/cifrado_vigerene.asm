@@ -5,6 +5,12 @@ buffer:		.space 2048
 msg_clave:	.asciiz "Ingrese la clave: "
 clave:		.space 100	# Reserva de espacio en memoria para la clave
 
+
+# $s1 contiene la cadena a cifrar
+# $s2 contiene la clave para el cifrado
+# $s3 contiene la longitud de la clave
+# 
+
 .text
 read_input:
 	li $v0, 13	# Open file
@@ -38,14 +44,34 @@ input_clave:
 	
 	la $t0, clave	# Carga la dirección base de la clave
 	li $t2, 10
-read_clave:
-	lb $t1, 0($t0)
-	beq $t1, $t2, exit	# Compara si hay salto de linea, de serlo, es que acabo la clave o es nula la longitud
-	beq $t1, $zero, exit	# Compara si hay terminador nulo, de serlo, es que acabo la clave
-	addi $t0, $t0, 1
-	addi $s3, $s3, 1		# Contador de longitud de la clave
-	j read_clave
 	
+long_clave:
+	lb $t1, 0($t0)
+	beq $t1, $t2, cifrar	# Compara si hay salto de linea, de serlo, es que acabo la clave o es nula la longitud
+	beq $t1, $zero, cifrar	# Compara si hay terminador nulo, de serlo, es que acabo la clave
+	addi $t0, $t0, 1
+	addi $s3, $s3, 1		# $s3 ahora contiene la longitud de la clave
+	j long_clave
+	
+	
+cifrar:
+	lb $t0, clave	# Vuelve a la dirección base de la clave
+	lb $t1, buffer	# Lee el primer byte de la cadena a cifrar
+
+	addi $t2, $t0, -97	# Se resta 97 a ambas para obtener valores entre 0-25
+	addi $t3, $t1, -97	# $t2 y $t3 contienen valores de 0-25 (alfabeto) mientras que $t0 y $t1 contienen el caracter
+	
+	add $t4, $t2, $t3	# Suma de los valores de 0-25
+	
+	slti $t5, $t4, 26	# Compara si la suma es mayor a 26
+	bne $t5, $zero, volver_ascii
+	addi $t4, $t4, -26
+	
+	volver_ascii: addi $t4, $t4, 97		# Se suma nuevamente 97 para volver a la codificacion ascii
+	
+	li $v0, 11	# Se carga el servicio 11 encargado de imprimir un caracter
+	move $a0, $t4	# Se mueve el valor del caracter a $a0
+	syscall
 
 exit:	li $v0, 10
 	syscall
