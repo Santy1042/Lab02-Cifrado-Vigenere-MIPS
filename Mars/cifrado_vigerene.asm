@@ -1,6 +1,8 @@
 .data
 input_file:	.asciiz "input.txt"
+output_file:	.asciiz "criptogram.txt"
 buffer:		.space 2048
+output_buffer:	.space 2048
 
 msg_clave:	.asciiz "Ingrese la clave: "
 clave:		.space 100	# Reserva de espacio en memoria para la clave
@@ -9,23 +11,25 @@ clave:		.space 100	# Reserva de espacio en memoria para la clave
 # $s2 contiene la clave para el cifrado
 # $s3 contiene la longitud de la clave
 # $s4 contiene la direccion base de la clave
+# $s5 contiene el criptograma
+# $s6 contiene la cadena cifrada
 
 .text
 read_input:
-	li $v0, 13	# Open file
+	li $v0, 13	# Se abre el archivo con la cadena como solo lecura (read-only)
 	la $a0, input_file
-	li $a1, 0	# Read only
+	li $a1, 0	
 	syscall
 	move $s0, $v0
 	
-	li $v0, 14	# Read from file
+	li $v0, 14	# Se lee el contenido del archivo, en este caso, la cadena
 	move $a0, $s0
 	la $a1, buffer
 	li $a2, 2048
 	syscall
 	move $s1, $v0	# $s1 ahora contiene la cadena a cifrar
 	
-	li $v0, 16	# Close file
+	li $v0, 16	# Se cierra el archivo
 	move $a0, $s0
 	syscall
 	
@@ -55,12 +59,13 @@ long_clave:
 prep_cifrado:
 	la $t0, clave	# Vuelve a la dirección base de la clave
 	la $t1, buffer	# Vuelve a la dirección base de la cadena
+	la $s5, output_buffer # Dirección base del buffer para el archivo de salida
 	
 	li $t8, 0	# Contador longitud clave
 	li $t9, 0	# Contador longitud palabra
 	
 cifrar:	
-	beq $t9, $s1, exit	# Compara si se llego al final de la cadena, de serlo se acaba la ejecucion (temporal)
+	beq $t9, $s1, write_output	# Compara si se llego al final de la cadena, de serlo se acaba la ejecucion (temporal)
 	beq $t8, $s3, reset	# Compara si se llego al final de la clave, de serlo se vuelve a la direccion base
 	
 	lb $t2, 0($t0)	# Lee el byte de la clave
@@ -79,9 +84,8 @@ cifrar:
 	
 	volver_ascii: addi $t6, $t6, 97		# Se suma nuevamente 97 para volver a la codificacion ascii
 	
-	li $v0, 11	# Se carga el servicio 11 encargado de imprimir un caracter
-	move $a0, $t6	# Se mueve el valor del caracter a $a0
-	syscall
+	sb $t6, 0($s5)
+	addi $s5, $s5, 1
 	
 	addi $t8, $t8, 1
 	addi $t9, $t9, 1
@@ -96,6 +100,23 @@ cifrar:
 	li $t8, 0	# Se carga ese primer byte de la clave
 	j cifrar		# Continua cifrando
 	
+
+write_output:
+	li $v0, 13	# Se abre el archivo como escritura-crear (write-create)
+	la $a0, output_file
+	li $a1, 1
+	syscall
+	move $s6, $v0
+	
+	li $v0, 15	# Se escribe en el archivo el cifrado
+	move $a0, $s6
+	la $a1, output_buffer
+	move $a2, $t9	# Cantidad de caracteres que se cifraron, obntenidos anteriromente
+	syscall
+	
+	li $v0, 16	# Se cierra el archivo
+	move $a0, $s6
+	syscall
 
 exit:	li $v0, 10
 	syscall
