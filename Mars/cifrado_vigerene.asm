@@ -15,6 +15,11 @@ clave:		.space 100	# Reserva de espacio en memoria para la clave
 # $s6 contiene la cadena cifrada
 
 .text
+
+# ------------------------------------------------------------------------------------
+#	ARCHIVOS ENTRADA
+# ------------------------------------------------------------------------------------
+
 read_input:
 	li $v0, 13	# Se abre el archivo con la cadena como solo lecura (read-only)
 	la $a0, input_file
@@ -32,6 +37,28 @@ read_input:
 	li $v0, 16	# Se cierra el archivo
 	move $a0, $s0
 	syscall
+	
+read_criptogram:
+	li $v0, 13	# Se abre el archivo con el criptograma como solo lecura (read-only)
+	la $a0, output_file
+	li $a1, 0	
+	syscall
+	move $s0, $v0
+	
+	li $v0, 14	# Se lee el contenido del archivo, en este caso, el criptograma
+	move $a0, $s0
+	la $a1, buffer
+	li $a2, 2048
+	syscall
+	move $s1, $v0	# $s1 ahora contiene la cadena a descifrar (criptograma)
+	
+	li $v0, 16	# Se cierra el archivo
+	move $a0, $s0
+	syscall
+	
+# ------------------------------------------------------------------------------------
+#	CLAVE
+# ------------------------------------------------------------------------------------		
 	
 input_clave:
 	li $v0, 4	# Print string
@@ -56,13 +83,17 @@ long_clave:
 	addi $s3, $s3, 1		# $s3 ahora contiene la longitud de la clave
 	j long_clave
 	
+# ------------------------------------------------------------------------------------
+#	CIFRADO
+# ------------------------------------------------------------------------------------	
+	
 prep_cifrado:
 	la $t0, clave	# Vuelve a la dirección base de la clave
 	la $t1, buffer	# Vuelve a la dirección base de la cadena
 	la $s5, output_buffer # Dirección base del buffer para el archivo de salida
 	
 	li $t8, 0	# Contador longitud clave
-	li $t9, 0	# Contador longitud palabra
+	li $t9, 0	# Contador longitud palabra	
 	
 cifrar:	
 	beq $t9, $s1, write_output	# Compara si se llego al final de la cadena, de serlo se acaba la ejecucion (temporal)
@@ -100,6 +131,18 @@ cifrar:
 	li $t8, 0	# Se carga ese primer byte de la clave
 	j cifrar		# Continua cifrando
 	
+# ------------------------------------------------------------------------------------
+#	DESCIDFRADO
+# ------------------------------------------------------------------------------------
+
+prep_descifrado:
+
+descifrar:
+	
+	
+# ------------------------------------------------------------------------------------
+#	ARCHIVOS SALIDA
+# ------------------------------------------------------------------------------------	
 
 write_output:
 	li $v0, 13	# Se abre el archivo como escritura-crear (write-create)
@@ -117,6 +160,11 @@ write_output:
 	li $v0, 16	# Se cierra el archivo
 	move $a0, $s6
 	syscall
+	
+
+# ------------------------------------------------------------------------------------
+#	MENU
+# ------------------------------------------------------------------------------------	
 
 exit:	li $v0, 10
 	syscall
