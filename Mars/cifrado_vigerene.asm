@@ -35,10 +35,17 @@ input_clave:
 	syscall
 	la $s2, clave	# $s2 ahora contiene la clave para el cifrado
 	
+	
+	la $t0, clave	# Carga la dirección base de la clave
+	li $t2, 10
 read_clave:
+	lb $t1, 0($t0)
+	beq $t1, $t2, exit	# Compara si hay salto de linea, de serlo, es que acabo la clave o es nula la longitud
+	beq $t1, $zero, exit	# Compara si hay terminador nulo, de serlo, es que acabo la clave
+	addi $t0, $t0, 1
+	addi $s3, $s3, 1		# Contador de longitud de la clave
+	j read_clave
 	
-	
-
 
 exit:	li $v0, 10
 	syscall
