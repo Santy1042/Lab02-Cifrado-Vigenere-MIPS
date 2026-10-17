@@ -2,7 +2,7 @@
 input_file:		.asciiz "input.txt"
 criptogram_file:	.asciiz "criptogram.txt"
 output_file:		.asciiz "deciphered.txt"
-buffer:			.space 2048
+buffer:			.space 2049
 output_buffer:		.space 2048
 
 msg_menu:	.asciiz "\n------------------------------------------------------------------------------------\n MENU \n 1). Cifrar \n 2). Descifrar \n 3. Salir \n ------------------------------------------------------------------------------------"
@@ -11,7 +11,8 @@ msg_clave:	.asciiz "Ingrese la clave: "
 
 msg_opcion_invalida: .asciiz "\nOpcion invalida. Intenta de nuevo.\n"
 msg_error_apertura: .asciiz "\nError: no se pudo abrir el archivo.\n"
-msg_archivo_vacio: .asciiz "Error: el archivo esta vacio.\n"
+msg_archivo_grande: .asciiz "\nEError: el archivo supera los 2048 bytes.\n"
+msg_archivo_vacio: .asciiz "\nEError: el archivo esta vacio.\n"
 msg_clave_vacia: .asciiz "\nError: la clave no puede estar vacia.\n"
 msg_error_escritura: .asciiz "Error: no se pudo escribir en el archivo.\n"
 
@@ -108,9 +109,12 @@ read_archivo:
 			# El identificador del archivo ya está en $a0
 	la $a1, buffer
 	move $a0, $s0 
-	li $a2, 2048
+	li $a2, 2049
 	syscall
 	move $s1, $v0	# $s1 ahora tiene el contenido del archivo
+	
+	li $t7, 2049
+    	beq $s1, $t7, buffer_lleno
 	
 	beq $v0, $zero, archivo_vacio
 	
@@ -263,6 +267,19 @@ error_apertura:
     li $v0, 4
     la $a0, msg_error_apertura
     syscall
+    j menu
+    
+buffer_lleno:
+    # Mostrar mensaje de error
+    li $v0, 4
+    la $a0, msg_archivo_grande
+    syscall
+
+    # Cerrar el archivo abierto
+    li $v0, 16
+    move $a0, $s0
+    syscall
+
     j menu
     
 archivo_vacio:
