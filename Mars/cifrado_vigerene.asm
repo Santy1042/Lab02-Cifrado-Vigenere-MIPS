@@ -9,7 +9,8 @@ msg_menu:	.asciiz "\n-----------------------------------------------------------
 msg_option:	.asciiz "\n\nIngrese una opcion: "
 msg_clave:	.asciiz "Ingrese la clave: "
 
-msg_error_apertura: .asciiz "Error: no se pudo abrir el archivo.\n"
+msg_error_apertura: .asciiz "\nError: no se pudo abrir el archivo.\n"
+msg_clave_vacia: .asciiz "\nError: la clave no puede estar vacia.\n"
 
 clave:		.space 100	# Reserva de espacio en memoria para la clave
 
@@ -140,8 +141,9 @@ long_clave:
 	addi $t0, $t0, 1
 	addi $s3, $s3, 1		# $s3 ahora contiene la longitud de la clave
 	j long_clave
-	
+	   
 final_clave:
+	beq $s3, $zero, clave_vacia
 	jr $ra
 	
 # ------------------------------------------------------------------------------------
@@ -246,6 +248,12 @@ write_archivo:
 error_apertura:
     li $v0, 4
     la $a0, msg_error_apertura
+    syscall
+    j menu
+    
+clave_vacia:
+    li $v0, 4
+    la $a0, msg_clave_vacia
     syscall
     j menu
 
