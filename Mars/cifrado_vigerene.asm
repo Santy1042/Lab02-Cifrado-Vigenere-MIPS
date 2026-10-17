@@ -37,55 +37,75 @@ menu:
 
 	li $t0, 1	
 	
-	beq $s7, $t0, read_input
+	beq $s7, $t0, opt_cifrar
 	addi $t0, $t0, 1
 	
-	beq $s7, $t0, read_criptogram
+	beq $s7, $t0, opt_descifrar
 	addi $t0, $t0, 1
 	
 	beq $s7, $t0, exit
-	
 	j menu
+	
+opt_cifrar:
+	la $a0, input_file # Nombre del archivo a leer
+	jal read_archivo
+	
+	jal input_clave
+	
+	la $t0, clave	# Vuelve a la dirección base de la clave
+	la $t1, buffer	# Vuelve a la dirección base de la cadena
+	la $s5, output_buffer # Dirección base del buffer para el archivo de salida
+	li $t8, 0	# Contador longitud clave
+	li $t9, 0	# Contador longitud palabra
+	jal procesar
+	
+	la $a0, criptogram_file # Nombre del archivo a escribir
+	jal write_archivo
+	
+	j exit
+	
+opt_descifrar:
+	la $a0, criptogram_file
+	jal read_archivo
+	
+	jal input_clave
+	
+	la $t0, clave	# Vuelve a la dirección base de la clave
+	la $t1, buffer	# Vuelve a la dirección base de la cadena
+	la $s5, output_buffer # Dirección base del buffer para el archivo de salida
+	li $t8, 0	# Contador longitud clave
+	li $t9, 0	# Contador longitud palabra
+	jal procesar
+	
+	la $a0, output_file
+	jal write_archivo
+	
+	j exit
+	
 # ------------------------------------------------------------------------------------
 #	ARCHIVOS ENTRADA
 # ------------------------------------------------------------------------------------
-read_input:
-	li $v0, 13	# Se abre el archivo con la cadena como solo lecura (read-only)
-	la $a0, input_file
-	li $a1, 0	
+# Función encargada de abrir y leer un archivo
+
+read_archivo:		
+	li $v0, 13	# Syscall para abrir el archivo
+			# El nombre del archivo se envia desde el jal
+	li $a1, 0	# Modo de read-only (Solo lectura)
 	syscall
-	move $s0, $v0
+	move $s0, $v0	
 	
-	li $v0, 14	# Se lee el contenido del archivo, en este caso, la cadena
-	move $a0, $s0
+	li $v0, 14	# Syscall para leer el contenido del archivo
+			# El identificador del archivo ya está en $a0
 	la $a1, buffer
+	move $a0, $s0 
 	li $a2, 2048
 	syscall
-	move $s1, $v0	# $s1 ahora contiene la cadena a cifrar
+	move $s1, $v0	# $s1 ahora tiene el contenido del archivo
 	
-	li $v0, 16	# Se cierra el archivo
-	move $a0, $s0
+	li $v0, 16
+	move $a0, $s0 	# Syscall para cerrar el archivo cuando temrinamos de usarlo
 	syscall
-	j input_clave
-	
-read_criptogram:
-	li $v0, 13	# Se abre el archivo con el criptograma como solo lecura (read-only)
-	la $a0, criptogram_file
-	li $a1, 0	
-	syscall
-	move $s0, $v0
-	
-	li $v0, 14	# Se lee el contenido del archivo, en este caso, el criptograma
-	move $a0, $s0
-	la $a1, buffer
-	li $a2, 2048
-	syscall
-	move $s1, $v0	# $s1 ahora contiene la cadena a descifrar (criptograma)
-	
-	li $v0, 16	# Se cierra el archivo
-	move $a0, $s0
-	syscall
-	j input_clave
+	jr $ra
 	
 # ------------------------------------------------------------------------------------
 #	CLAVE
@@ -116,28 +136,14 @@ long_clave:
 	j long_clave
 	
 final_clave:
-	li $t0, 1	
-	
-	beq $s7, $t0, prep_cifrado
-	addi $t0, $t0, 1
-	
-	beq $s7, $t0, prep_descifrado
-	addi $t0, $t0, 1
+	jr $ra
 	
 # ------------------------------------------------------------------------------------
-#	CIFRADO
+#	PROCESAMIENTO DE CARACTERES
 # ------------------------------------------------------------------------------------	
-	
-prep_cifrado:
-	la $t0, clave	# Vuelve a la dirección base de la clave
-	la $t1, buffer	# Vuelve a la dirección base de la cadena
-	la $s5, output_buffer # Dirección base del buffer para el archivo de salida
-	
-	li $t8, 0	# Contador longitud clave
-	li $t9, 0	# Contador longitud palabra	
-	
-cifrar:	
-	beq $t9, $s1, write_criptogram	# Compara si se llego al final de la cadena, de serlo se acaba la ejecucion (temporal)
+
+procesar:	
+	beq $t9, $s1, fin_procesar	# Compara si se llego al final de la cadena, de serlo, vuelve para continuar el proceso
 	beq $t8, $s3, reset	# Compara si se llego al final de la clave, de serlo se vuelve a la direccion base
 	
 	lb $t2, 0($t0)	# Lee el byte de la clave
@@ -148,58 +154,23 @@ cifrar:
 	addi $t5, $t3, -97	
 	# $t2 y $t3 contienen valores de 0-25 (alfabeto) mientras que $t0 y $t1 contienen el caracter
 	
-	add $t6, $t4, $t5	# Suma de los valores de 0-25
+	li $t7, 1	# Se compara la opción que se escogió para un camino u otro
+	beq $s7, $t7, cifrar	# Si la opciòn es 1, se cifra la letra, si no, se descifra
 	
-	slti $t7, $t6, 26	# Compara si la suma es menor a 26
-	bne $t7, $zero, volver_ascii_c
-	addi $t6, $t6, -26
+	sub  $t6, $t5, $t4	# Proceso de descifrar
+    	slt  $t7, $t6, $zero
+    	beq  $t7, $zero, volver_ascii
+    	addi $t6, $t6, 26
+    	j volver_ascii
+    	
+cifrar:
+	add  $t6, $t4, $t5	# Proceso de cifrar
+    	slti $t7, $t6, 26
+    	bne  $t7, $zero, volver_ascii
+    	addi $t6, $t6, -26
 	
-	volver_ascii_c: addi $t6, $t6, 97		# Se suma nuevamente 97 para volver a la codificacion ascii
-	
-	
-	sb $t6, 0($s5)
-	addi $s5, $s5, 1
-	
-	addi $t8, $t8, 1
-	addi $t9, $t9, 1
-	addi $t0, $t0, 1
-	addi $t1, $t1, 1
-	j cifrar
-	
-	# Se aumenta en 1 tanto los contadores como las direcciones para que pueda seguir su camino
-	
-
-# ------------------------------------------------------------------------------------
-#	DESCIDFRADO
-# ------------------------------------------------------------------------------------
-
-prep_descifrado:
-	la $t0, clave	# Vuelve a la dirección base de la clave
-	la $t1, buffer	# Vuelve a la dirección base de la cadena
-	la $s5, output_buffer # Dirección base del buffer para el archivo de salida
-	
-	li $t8, 0	# Contador longitud clave
-	li $t9, 0	# Contador longitud palabra	
-	
-descifrar:	
-	beq $t9, $s1, write_output	# Compara si se llego al final de la cadena, de serlo se acaba la ejecucion (temporal)
-	beq $t8, $s3, reset	# Compara si se llego al final de la clave, de serlo se vuelve a la direccion base
-	
-	lb $t2, 0($t0)	# Lee el byte de la clave
-	lb $t3, 0($t1)	# Lee el byte del criptograma
-	
-	# Se resta 97 a ambas para obtener valores entre 0-25
-	addi $t4, $t2, -97	
-	addi $t5, $t3, -97	
-	# $t2 y $t3 contienen valores de 0-25 (alfabeto) mientras que $t0 y $t1 contienen el caracter
-	
-	sub $t6, $t5, $t4	# Suma de los valores de 0-25
-	
-	slt $t7, $t6, $zero	# Compara si la suma es menor a 26
-	beq $t7, $zero, volver_ascii_desc
-	addi $t6, $t6, 26
-	
-	volver_ascii_desc: addi $t6, $t6, 97		# Se suma nuevamente 97 para volver a la codificacion ascii
+volver_ascii: 
+	addi $t6, $t6, 97		# Se suma nuevamente 97 para volver a la codificacion ascii
 	
 	sb $t6, 0($s5)
 	addi $s5, $s5, 1
@@ -208,66 +179,41 @@ descifrar:
 	addi $t9, $t9, 1
 	addi $t0, $t0, 1
 	addi $t1, $t1, 1
-	j descifrar
+	j procesar
 	
 	# Se aumenta en 1 tanto los contadores como las direcciones para que pueda seguir su camino
+reset:
+	la $t0, clave	# Se devuelve $t0 a la dirección base de la clave
+	li $t8, 0	# Se carga ese primer byte de la clave
+	j procesar
 
+fin_procesar:
+	jr $ra
 	
 # ------------------------------------------------------------------------------------
 #	ARCHIVOS SALIDA
 # ------------------------------------------------------------------------------------	
-
-write_criptogram:
-	li $v0, 13	# Se abre el archivo como escritura-crear (write-create)
-	la $a0, criptogram_file
-	li $a1, 1
-	syscall
-	move $s6, $v0
 	
-	li $v0, 15	# Se escribe en el archivo el cifrado
-	move $a0, $s6
+write_archivo:
+	li $v0, 13	# Se abre el archivo como escritura-crear (write-create)
+			# El nombre del archivo se envia desde el jal
+	li $a1, 1	# Modo de write-create (Leer y crear)
+	syscall
+	move $a0, $v0
+	
+	li $v0, 15	# Syscall para escribir en el archivo el cifrado que se obtuvo 
+			# El identificador del archivo ya está en $a0
 	la $a1, output_buffer
 	move $a2, $t9	# Cantidad de caracteres que se cifraron, obntenidos anteriromente
 	syscall
 	
-	li $v0, 16	# Se cierra el archivo
-	move $a0, $s6
+	li $v0, 16	# Syscall para cerrar el archivo cuando temrinamos de usarlo
 	syscall
-	j menu
+	jr $ra
 	
-write_output:
-	li $v0, 13	# Se abre el archivo como escritura-crear (write-create)
-	la $a0, output_file
-	li $a1, 1
-	syscall
-	move $s6, $v0
-	
-	li $v0, 15	# Se escribe en el archivo el cifrado
-	move $a0, $s6
-	la $a1, output_buffer
-	move $a2, $t9	# Cantidad de caracteres que se cifraron, obntenidos anteriromente
-	syscall
-	
-	li $v0, 16	# Se cierra el archivo
-	move $a0, $s6
-	syscall
-	j menu
-
 # ------------------------------------------------------------------------------------
-#	FUNCIONES AUXILIARES
+#	SALIDA
 # ------------------------------------------------------------------------------------	
-
-reset:
-	la $t0, clave	# Se devuelve $t0 a la dirección base de la clave
-	li $t8, 0	# Se carga ese primer byte de la clave
-	
-	li $t2, 1	
-	
-	beq $s7, $t2, cifrar
-	addi $t2, $t2, 1
-	
-	beq $s7, $t2, descifrar
-	addi $t2, $t2, 1
 
 exit:	li $v0, 10
 	syscall
