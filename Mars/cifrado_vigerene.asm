@@ -17,6 +17,10 @@ msg_clave_vacia: .asciiz "\nError: la clave no puede estar vacia.\n"
 msg_clave_max: .asciiz "\nError: la clave no puede superar los 100 caracteres.\n"
 msg_error_escritura: .asciiz "Error: no se pudo escribir en el archivo.\n"
 
+msg_exito_cifrado:	.asciiz "\n[Exito] Mensaje cifrado y guardado correctamente en criptogram.txt\n"
+msg_exito_descifrado:	.asciiz "\n[Exito] Criptograma descifrado y guardado correctamente en deciphered.txt\n"
+msg_salida:		.asciiz "\nSaliendo del programa... ¡Hasta luego!\n"
+
 clave:		.space 101	# Reserva de espacio en memoria para la clave
 
 # $s1 contiene la cadena a cifrar
@@ -71,7 +75,11 @@ opt_cifrar:
 	la $a0, criptogram_file # Nombre del archivo a escribir
 	jal write_archivo
 	
-	j exit
+	li $v0, 4
+	la $a0, msg_exito_cifrado
+	syscall
+	
+	j menu
 	
 opt_descifrar:
 	la $a0, criptogram_file
@@ -89,7 +97,11 @@ opt_descifrar:
 	la $a0, output_file
 	jal write_archivo
 	
-	j exit
+	li $v0, 4
+	la $a0, msg_exito_descifrado
+	syscall
+	
+	j menu
 	
 # ------------------------------------------------------------------------------------
 #	ARCHIVOS ENTRADA
@@ -325,5 +337,9 @@ error_escritura:
 #	SALIDA
 # ------------------------------------------------------------------------------------	
 
-exit:	li $v0, 10
+exit:	li $v0, 4
+	la $a0, msg_salida
+	syscall
+	
+	li $v0, 10
 	syscall
