@@ -11,12 +11,13 @@ msg_clave:	.asciiz "Ingrese la clave: "
 
 msg_opcion_invalida: .asciiz "\nOpcion invalida. Intenta de nuevo.\n"
 msg_error_apertura: .asciiz "\nError: no se pudo abrir el archivo.\n"
-msg_archivo_grande: .asciiz "\nEError: el archivo supera los 2048 bytes.\n"
-msg_archivo_vacio: .asciiz "\nEError: el archivo esta vacio.\n"
+msg_archivo_grande: .asciiz "\nError: el archivo supera los 2048 bytes.\n"
+msg_archivo_vacio: .asciiz "\nError: el archivo esta vacio.\n"
 msg_clave_vacia: .asciiz "\nError: la clave no puede estar vacia.\n"
+msg_clave_max: .asciiz "\nError: la clave no puede superar los 99 caracteres.\n"
 msg_error_escritura: .asciiz "Error: no se pudo escribir en el archivo.\n"
 
-clave:		.space 100	# Reserva de espacio en memoria para la clave
+clave:		.space 101	# Reserva de espacio en memoria para la clave
 
 # $s1 contiene la cadena a cifrar
 # $s2 contiene la clave para el cifrado
@@ -134,7 +135,7 @@ input_clave:
 
 	li $v0, 8	# Read string
 	la $a0, clave	 
-	li $a1, 100	# Caracteres máximos a leer
+	li $a1, 101	# Caracteres máximos a leer
 	syscall
 	la $s2, clave	# $s2 ahora contiene la clave para el cifrado
 	la $s4, clave
@@ -148,11 +149,13 @@ long_clave:
 	beq $t1, $t2, final_clave	# Compara si hay salto de linea, de serlo, es que acabo la clave o es nula la longitud
 	beq $t1, $zero, final_clave	# Compara si hay terminador nulo, de serlo, es que acabo la clave
 	addi $t0, $t0, 1
-	addi $s3, $s3, 1		# $s3 ahora contiene la longitud de la clave
+	addi $s3, $s3, 1				# $s3 ahora contiene la longitud de la clave
 	j long_clave
 	   
 final_clave:
 	beq $s3, $zero, clave_vacia
+	li $t7, 101
+	beq $s3, $t7, clave_max
 	jr $ra
 	
 # ------------------------------------------------------------------------------------
@@ -236,21 +239,23 @@ write_archivo:
 			# El nombre del archivo se envia desde el jal
 	li $a1, 1	# Modo de write-create (Leer y crear)
 	syscall
-	move $a0, $v0
+	move $s0, $v0
 	
 	li $t7, -1
-	beq $v0, $t7, error_apertura
+	beq $s0, $t7, error_apertura
 	
 	li $v0, 15	# Syscall para escribir en el archivo el cifrado que se obtuvo 
-			# El identificador del archivo ya está en $a0
+	move $a0, $s0		
 	la $a1, output_buffer
 	move $a2, $t9	# Cantidad de caracteres que se cifraron, obntenidos anteriromente
 	syscall
 	
 	li $t7, -1
     	beq $v0, $t7, error_escritura
+    	bne $v0, $t9, error_escritura
 	
 	li $v0, 16	# Syscall para cerrar el archivo cuando temrinamos de usarlo
+	move $a0, $s0
 	syscall
 	jr $ra
 	
@@ -286,11 +291,22 @@ archivo_vacio:
     li $v0, 4
     la $a0, msg_archivo_vacio
     syscall
+    
+    li $v0, 16
+    move $a0, $s0
+    syscall
+    
     j menu
     
 clave_vacia:
     li $v0, 4
     la $a0, msg_clave_vacia
+    syscall
+    j menu
+ 
+clave_max:
+    li $v0, 4
+    la $a0, msg_clave_max
     syscall
     j menu
     
