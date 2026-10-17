@@ -22,7 +22,7 @@ msg_exito_cifrado:	.asciiz "\n[Exito] Mensaje cifrado y guardado correctamente e
 msg_exito_descifrado:	.asciiz "\n[Exito] Criptograma descifrado y guardado correctamente en deciphered.txt\n"
 msg_salida:		.asciiz "\nSaliendo del programa...\n"
 
-clave:		.space 101	# Clave maxima de 100 bytes, un byte mas para comprobar desbordamientos
+clave:		.space 102	# Clave maxima de 100 bytes, un byte mas para comprobar desbordamientos
 
 # $s0 contiene el identificador del archivo dependiendo lo que se quiera hacer (Cifrar o Descifrar)
 # $s1 contiene la cantidad de caracteres/bytes leídos del archivo (longitud de la cadena)
@@ -68,7 +68,7 @@ opt_cifrar:
 	
 	# Se preparan todos los registros necesarios para el cifrado
 	
-	la $t0, $s2	# Dirección base de la clave
+	move $t0, $s2	# Dirección base de la clave
 	la $t1, buffer	# Dirección base de la cadena
 	la $s5, output_buffer # Dirección base del buffer para el archivo de salida
 	li $t8, 0	# Contador longitud clave
@@ -92,7 +92,7 @@ opt_descifrar:
 	
 	# Se preparan todos los registros necesarios para el cifrado
 	
-	la $t0, $s2	# Dirección base de la clave
+	move $t0, $s2	# Dirección base de la clave
 	la $t1, buffer	# Dirección base de la cadena
 	la $s5, output_buffer # Dirección base del buffer para el archivo de salida
 	li $t8, 0	# Contador longitud clave
@@ -150,7 +150,7 @@ input_clave:
 
 	li $v0, 8	# Lee la clave
 	la $a0, clave	 
-	li $a1, 101	
+	li $a1, 102	
 	syscall
 	la $s2, clave	# $s2 ahora contiene la dirección base de la clave
 	
