@@ -149,6 +149,18 @@ procesar:
 	lb $t2, 0($t0)	# Lee el byte de la clave
 	lb $t3, 0($t1)	# Lee el byte de la cadena
 	
+	 # Preservar tabulador (ASCII 9)
+    	li   $t7, 9
+    	beq  $t3, $t7, copiar_control
+
+    	# Preservar salto de linea (ASCII 10)
+    	li   $t7, 10
+    	beq  $t3, $t7, copiar_control
+
+    	# Preservar retorno de carro (ASCII 13)
+    	li   $t7, 13
+    	beq  $t3, $t7, copiar_control
+	
 	# Se resta 97 a ambas para obtener valores entre 0-25
 	addi $t4, $t2, -32	
 	addi $t5, $t3, -32	
@@ -182,6 +194,14 @@ volver_ascii:
 	j procesar
 	
 	# Se aumenta en 1 tanto los contadores como las direcciones para que pueda seguir su camino
+	
+copiar_control:
+    sb   $t3, 0($s5)
+    addi $s5, $s5, 1
+    addi $t1, $t1, 1
+    addi $t9, $t9, 1
+    j    procesar
+
 reset:
 	la $t0, clave	# Se devuelve $t0 a la dirección base de la clave
 	li $t8, 0	# Se carga ese primer byte de la clave
