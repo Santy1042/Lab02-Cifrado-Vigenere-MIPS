@@ -9,6 +9,7 @@ msg_menu:	.asciiz "\n-----------------------------------------------------------
 msg_option:	.asciiz "\n\nIngrese una opcion: "
 msg_clave:	.asciiz "Ingrese la clave: "
 
+msg_opcion_invalida: .asciiz "\nOpcion invalida. Intenta de nuevo.\n"
 msg_error_apertura: .asciiz "\nError: no se pudo abrir el archivo.\n"
 msg_clave_vacia: .asciiz "\nError: la clave no puede estar vacia.\n"
 
@@ -48,7 +49,7 @@ menu:
 	addi $t0, $t0, 1
 	
 	beq $s7, $t0, exit
-	j menu
+	j opcion_invalida
 	
 opt_cifrar:
 	la $a0, input_file # Nombre del archivo a leer
@@ -243,8 +244,14 @@ write_archivo:
 	jr $ra
 	
 # ------------------------------------------------------------------------------------
-#	SALIDA && MENSAJES
+#	SALIDA && MENSAJES DE ERRORES
 # ------------------------------------------------------------------------------------	
+opcion_invalida:
+    li $v0, 4
+    la $a0, msg_opcion_invalida
+    syscall
+    j menu
+
 error_apertura:
     li $v0, 4
     la $a0, msg_error_apertura
