@@ -8,6 +8,9 @@ output_buffer:		.space 2048
 msg_menu:	.asciiz "\n------------------------------------------------------------------------------------\n MENU \n 1). Cifrar \n 2). Descifrar \n 3. Salir \n ------------------------------------------------------------------------------------"
 msg_option:	.asciiz "\n\nIngrese una opcion: "
 msg_clave:	.asciiz "Ingrese la clave: "
+
+msg_error_apertura: .asciiz "Error: no se pudo abrir el archivo.\n"
+
 clave:		.space 100	# Reserva de espacio en memoria para la clave
 
 # $s1 contiene la cadena a cifrar
@@ -93,6 +96,9 @@ read_archivo:
 	li $a1, 0	# Modo de read-only (Solo lectura)
 	syscall
 	move $s0, $v0	
+	
+	li $t7, -1
+	beq $v0, $t7, error_apertura
 	
 	li $v0, 14	# Syscall para leer el contenido del archivo
 			# El identificador del archivo ya está en $a0
@@ -221,6 +227,9 @@ write_archivo:
 	syscall
 	move $a0, $v0
 	
+	li $t7, -1
+	beq $v0, $t7, error_apertura
+	
 	li $v0, 15	# Syscall para escribir en el archivo el cifrado que se obtuvo 
 			# El identificador del archivo ya está en $a0
 	la $a1, output_buffer
@@ -232,8 +241,13 @@ write_archivo:
 	jr $ra
 	
 # ------------------------------------------------------------------------------------
-#	SALIDA
+#	SALIDA && MENSAJES
 # ------------------------------------------------------------------------------------	
+error_apertura:
+    li $v0, 4
+    la $a0, msg_error_apertura
+    syscall
+    j menu
 
 exit:	li $v0, 10
 	syscall
