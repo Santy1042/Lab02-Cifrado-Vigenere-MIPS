@@ -150,8 +150,8 @@ procesar:
 	lb $t3, 0($t1)	# Lee el byte de la cadena
 	
 	# Se resta 97 a ambas para obtener valores entre 0-25
-	addi $t4, $t2, -97	
-	addi $t5, $t3, -97	
+	addi $t4, $t2, -32	
+	addi $t5, $t3, -32	
 	# $t2 y $t3 contienen valores de 0-25 (alfabeto) mientras que $t0 y $t1 contienen el caracter
 	
 	li $t7, 1	# Se compara la opción que se escogió para un camino u otro
@@ -160,17 +160,17 @@ procesar:
 	sub  $t6, $t5, $t4	# Proceso de descifrar
     	slt  $t7, $t6, $zero
     	beq  $t7, $zero, volver_ascii
-    	addi $t6, $t6, 26
+    	addi $t6, $t6, 95
     	j volver_ascii
     	
 cifrar:
 	add  $t6, $t4, $t5	# Proceso de cifrar
-    	slti $t7, $t6, 26
+    	slti $t7, $t6, 95
     	bne  $t7, $zero, volver_ascii
-    	addi $t6, $t6, -26
+    	addi $t6, $t6, -95
 	
 volver_ascii: 
-	addi $t6, $t6, 97		# Se suma nuevamente 97 para volver a la codificacion ascii
+	addi $t6, $t6, 32		# Se suma nuevamente 97 para volver a la codificacion ascii
 	
 	sb $t6, 0($s5)
 	addi $s5, $s5, 1
