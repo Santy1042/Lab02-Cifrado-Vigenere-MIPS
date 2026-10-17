@@ -11,7 +11,9 @@ msg_clave:	.asciiz "Ingrese la clave: "
 
 msg_opcion_invalida: .asciiz "\nOpcion invalida. Intenta de nuevo.\n"
 msg_error_apertura: .asciiz "\nError: no se pudo abrir el archivo.\n"
+msg_archivo_vacio: .asciiz "Error: el archivo esta vacio.\n"
 msg_clave_vacia: .asciiz "\nError: la clave no puede estar vacia.\n"
+msg_error_escritura: .asciiz "Error: no se pudo escribir en el archivo.\n"
 
 clave:		.space 100	# Reserva de espacio en memoria para la clave
 
@@ -109,6 +111,8 @@ read_archivo:
 	li $a2, 2048
 	syscall
 	move $s1, $v0	# $s1 ahora tiene el contenido del archivo
+	
+	beq $v0, $zero, archivo_vacio
 	
 	li $v0, 16
 	move $a0, $s0 	# Syscall para cerrar el archivo cuando temrinamos de usarlo
@@ -239,12 +243,15 @@ write_archivo:
 	move $a2, $t9	# Cantidad de caracteres que se cifraron, obntenidos anteriromente
 	syscall
 	
+	li $t7, -1
+    	beq $v0, $t7, error_escritura
+	
 	li $v0, 16	# Syscall para cerrar el archivo cuando temrinamos de usarlo
 	syscall
 	jr $ra
 	
 # ------------------------------------------------------------------------------------
-#	SALIDA && MENSAJES DE ERRORES
+#	MENSAJES DE ERRORES
 # ------------------------------------------------------------------------------------	
 opcion_invalida:
     li $v0, 4
@@ -258,11 +265,27 @@ error_apertura:
     syscall
     j menu
     
+archivo_vacio:
+    li $v0, 4
+    la $a0, msg_archivo_vacio
+    syscall
+    j menu
+    
 clave_vacia:
     li $v0, 4
     la $a0, msg_clave_vacia
     syscall
     j menu
+    
+error_escritura:
+    li $v0, 4
+    la $a0, msg_error_escritura
+    syscall
+    j menu
+    
+# ------------------------------------------------------------------------------------
+#	SALIDA
+# ------------------------------------------------------------------------------------	
 
 exit:	li $v0, 10
 	syscall
