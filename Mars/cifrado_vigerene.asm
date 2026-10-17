@@ -14,7 +14,7 @@ msg_error_apertura: .asciiz "\nError: no se pudo abrir el archivo.\n"
 msg_archivo_grande: .asciiz "\nError: el archivo supera los 2048 bytes.\n"
 msg_archivo_vacio: .asciiz "\nError: el archivo esta vacio.\n"
 msg_clave_vacia: .asciiz "\nError: la clave no puede estar vacia.\n"
-msg_clave_max: .asciiz "\nError: la clave no puede superar los 99 caracteres.\n"
+msg_clave_max: .asciiz "\nError: la clave no puede superar los 100 caracteres.\n"
 msg_error_escritura: .asciiz "Error: no se pudo escribir en el archivo.\n"
 
 clave:		.space 101	# Reserva de espacio en memoria para la clave
@@ -314,6 +314,11 @@ error_escritura:
     li $v0, 4
     la $a0, msg_error_escritura
     syscall
+    
+    li $v0, 16
+    move $a0, $s0
+    syscall
+    
     j menu
     
 # ------------------------------------------------------------------------------------
